@@ -1,0 +1,512 @@
+GAMS 51.1.0  2d039df5 Sep 13, 2025          WEX-WEI x86 64bit/MS Windows - 12/09/25 17:04:26 Page 1
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+C o m p i l a t i o n
+
+
+       
+      The purpose of this model is to optimize household water usage based on different conservation actions.
+       
+      Conservation efforts are focused on different end uses, and what short-term and long-term actions can be taken to
+      save water with each end use.
+       
+      The end uses are: shower, toilet, faucet, laundry, dishwasher, and outdoor use.
+      Faucet includes handwashing, culinary, and handwashing dishes.
+       
+      The objective function is to minimize the cost of water used in a year. Assume $6.64 per 1000 gal of water.
+       
+      Dimensions: End uses, long-term actions, short-term actions.
+       
+      Decision Variables:
+          X: volume of water for each end use
+          Y: Action for each long-term end use
+          Z: Action for each short-term end use
+       
+      State Variables:
+          TotalX: Total volume of water from all end uses
+          Cost: cost of water used
+       
+      Constraints:
+          Water Volume per end use >= Minimum Volume
+          For each end use (i)
+              X >= Current Volume - (water saved)*Y - (water saved)*Z
+              Y <= (willingness to do action i) [0,1]
+              Z <= (willingness to do action i) [???] how to represent preference without doing every action to minimize cost???
+       
+      A Monte Carlo simulation will be used but for now I'm starting with a single model with made up input survey values.
+       
+  34   
+  35  ** Just the linear program
+  36   
+  37  * Step 1. Define the Sets
+  38  sets X end uses /Shower, Toilet, Faucets, Laundry, Dishwasher, Outdoor/
+  39      Y short term actions /ShortShowers, LessShowers, LessToilet, LessFaucet, LessLaundry, LessDishLoads, ShortIrrigation, LessIrrigation/
+  40      Z long term actions /LowFlowShower, LowFLowToilet, AeratorFaucet, HELaundry, HEDishwasher, ReduceYard/
+  41      Data input data columns /RateStd, RateEff, Duration, Frequency, InvestCost/
+  42  * 1a. Define subsets for to assign short term actions to the data they change
+  43      YDuration(Y) actions that reduce duration /ShortShowers, ShortIrrigation/
+  44      YFrequency(Y) actions that reduce frequency /LessShowers, LessToilet, LessFaucet, LessLaundry, LessDishLoads, LessIrrigation/;
+  45   
+  46  * 1b. Map actions to end uses
+  47  Set MapYX(Y, X)
+  48          /ShortShowers . Shower,
+  49          LessShowers .Shower,
+  50          LessToilet .Toilet,
+  51          LessFaucet .Faucets,
+  52          LessLaundry .Laundry,
+  53          LessDishLoads .Dishwasher,
+  54          ShortIrrigation .Outdoor,
+  55          LessIrrigation .Outdoor/;
+  56  Set MapZX(Z, X)
+  57          /LowFlowShower .Shower
+  58          LowFlowToilet .Toilet
+  59          AeratorFaucet .Faucets
+  60          HELaundry .Laundry
+  61          HEDishwasher .Dishwasher
+  62          ReduceYard .Outdoor/;
+  63   
+  64  * Step 2. Define the input data
+  65  * 2a. Define the parameter to match the excel data
+  66  Parameter InputData(X,Data) the input data from excel (and the survey)
+  67            MaxReduction(X) the max duration and frequency can be reduced by short term actions
+  68            PrefScoreY(Y) User preference for short term actions (1-10)
+  69            PrefScoreZ(Z) User Preference for long term actions (1-10);
+  70   
+  71  * 2b. Load the input data
+GDXIN   C:\Users\A02312721\Documents\GAMS\Studio\workspace\Household Conservation\Household_Input_Data.gdx
+--- LOAD  InputData = 1:InputData
+--- LOAD  MaxReduction = 2:MaxReduction
+--- LOAD  PrefScoreY = 3:PrefScoreY
+--- LOAD  PrefScoreZ = 4:PrefScoreZ
+  76   
+  77  * 2c. Put the input data into parameters
+  78  Parameters RateStd(X)       The standard flow rate (gallons per minute or gallons per load)
+  79              RateEff(X)      The efficient flow rate for new appliances (GPM or GPL)
+  80              Duration(X)     The duration for each end use X
+  81              Frequency(X)    The frequency of use for each end use X
+  82              InvestCost(X)   The investment cost for buying a new appliance ($);
+  83   
+  84   RateStd(X)     =InputData(X, 'RateStd');
+  85   RateEff(x)     =InputData(X, 'RateEff');
+  86   Duration(X)    =InputData(X, 'Duration');
+  87   Frequency(X)   =InputData(X, 'Frequency');
+  88   InvestCost(X)  =InputData(X, 'InvestCost');
+  89   
+  90  * 2d. Define the rest of the parameters using the input data
+  91  Parameters CurrentUse(X)    The volume of current water used by the household
+  92              DiscomfortCostY(Y)  The virtual cost for each short term action ($)
+  93              DiscomfortCostZ(Z)  The virtual cost for each long term action ($);
+  94   
+  95  Scalars WaterPrice Cost per gallon of water ($) /0.00664/
+  96          PenaltyWeight Cost penalty per discomfort point ($) /10/
+  97          MaxScore Maximum preference score /10/;
+  98   
+  99  CurrentUse(X)   = RateStd(X) * Duration(X) * Frequency(X);
+ 100  DiscomfortCostY(Y) = (MaxScore - PrefScoreY(Y)) * PenaltyWeight;
+ 101  DiscomfortCostZ(Z) = (MaxScore - PrefScoreZ(Z)) * PenaltyWeight;
+ 102   
+ 103   
+ 104   
+ 105  * Step 3. Define the Variables
+ 106  Variables   TotalCost            Objective function value ($)
+ 107              DoZAction(Z)        Binary variable to represent if a long term action is taken 1:do 0:don't
+ 108              DoYAction(Y)        Variable to represent if a short term action is taken
+ 109              TotalInvestCost     Total cost of implementing long term actions ($)
+ 110              TotalWaterYear      Total water used per year (gallons)
+ 111              WaterEndUse(X)      Total water used per end use (gallons);
+ 112   
+ 113  Binary Variable DoZAction(Z);
+ 114   
+ 115  Positive Variables DoYAction(Y), WaterEndUse(X);
+ 116   
+ 117  * Step 4. Define the equations using the variables
+ 118  Equations   TotalBenefit        Objective function ($)
+ 119              TotalInvest         The total cost of long term actions ($)
+ 120              TotalWaterUsed      The total water used in a year after conservation actions (gallons)
+ 121              WaterUsed(X)        The water used for each end use after actions are taken
+ 122              LimitDuration(X)    Constraint to make sure the duration doesn't exceed the max reduction
+ 123              LimitFrequency(X)   Constraint to make sure the frequency doesn't exceed the max reduction;
+ 124   
+ 125  WaterUsed(X).. WaterEndUse(X) =e= (RateStd(X) * (1 - sum(Z$MapZX(Z,X), DoZAction(Z))) + RateEff(X) * sum(Z$MapZX(Z,X), DoZAction(Z))) *
+ 126                  (Duration(X) - sum(Y$(MapYX(Y,X) and YDuration(Y)), DoYAction(Y))) * (Frequency(X) - sum(Y$(MapYX(Y,X) and YFrequency(Y)), DoYAction(Y)));
+ 127  TotalInvest..   TotalInvestCost =e= sum((Z,X)$MapZX(Z,X), InvestCost(X) * DoZAction(Z));
+ 128  TotalWaterUsed.. TotalWaterYear =e= sum(X,WaterEndUse(X)) * 52;
+ 129   
+ 130  LimitDuration(X).. MaxReduction(X) =l= sum(Y$(MapYX(Y,X) and YDuration(Y)), DoYAction(Y));
+ 131  LimitFrequency(X).. MaxReduction(X) =L= sum(Y$(MapYX(Y,X) and YFrequency(Y)), DoYAction(Y));
+ 132  TotalBenefit.. TotalCost =e= TotalInvestCost + (TotalWaterYear * WaterPrice) +sum(Y, DiscomfortCostY(Y) * DoYAction(Y)) +sum(Z, DiscomfortCostZ(Z) * DoZAction(Z));
+ 133   
+ 134   
+ 135   
+ 136  * Step 5. Define the model
+ 137  Model WaterConservation /all/;
+ 138  Solve WaterConservation using MINLP minimizing TotalCost;
+ 139   
+ 140  * Step 6. Display Results
+ 141  Display TotalCost.l;
+ 142  Display RateStd, Duration, Frequency;
+ 143   
+ 144  *********************************************************
+ 145  ** Monte Carlo Simulation
+ 146  *********************************************************
+ 147   
+GAMS 51.1.0  2d039df5 Sep 13, 2025          WEX-WEI x86 64bit/MS Windows - 12/09/25 17:04:26 Page 2
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Include File Summary
+
+
+   SEQ   GLOBAL TYPE      PARENT   LOCAL  FILENAME
+
+     1        1 INPUT          0       0  C:\Users\A02312721\Documents\GAMS\Studio\workspace\Household Conservation.gms
+     2       72 CALL           1      72  gdxxrw.exe "Household_Input_Data.xlsx" output="Household_Input_Data.gdx" par=InputData rng=Sheet2!A3:F9 rDim=1 cDim=1 par=MaxReduction rng=Sheet2!I4:J11 rDim=1 cDim=0 par=PrefScoreY rng=Sheet2!L4:M11 rDim=1 cDim=0 par=PrefScoreZ rng=Sheet2!O4:P9 rDim=1...
+     3       73 GDXIN          1      73  C:\Users\A02312721\Documents\GAMS\Studio\workspace\Household Conservation\Household_Input_Data.gdx
+
+
+COMPILATION TIME     =        3.281 SECONDS      3 MB  51.1.0 2d039df5 WEX-WEI
+GAMS 51.1.0  2d039df5 Sep 13, 2025          WEX-WEI x86 64bit/MS Windows - 12/09/25 17:04:26 Page 3
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Equation Listing    SOLVE WaterConservation Using MINLP From line 138
+
+
+---- TotalBenefit  =E=  Objective function ($)
+
+TotalBenefit..  TotalCost - 50*DoZAction(LowFlowShower) - 50*DoZAction(LowFLowToilet) - 50*DoZAction(AeratorFaucet) - 50*DoZAction(HELaundry) - 50*DoZAction(HEDishwasher) - 50*DoZAction(ReduceYard) - 50*DoYAction(ShortShowers) - 50*DoYAction(LessShowers) - 50*DoYAction(LessToilet) - 50*DoYAction(LessFaucet) - 50*DoYAction(LessLaundry) - 50*DoYAction(LessDishLoads) - 50*DoYAction(ShortIrrigation) - 50*DoYAction(LessIrrigation) - TotalInvestCost - 0.00664*TotalWaterYear =E= 0 ; (LHS = 0)
+     
+
+---- TotalInvest  =E=  The total cost of long term actions ($)
+
+TotalInvest..  - 10*DoZAction(LowFlowShower) - 50*DoZAction(LowFLowToilet) - 20*DoZAction(AeratorFaucet) - 200*DoZAction(HELaundry) - 400*DoZAction(HEDishwasher) - 200*DoZAction(ReduceYard) + TotalInvestCost =E= 0 ; (LHS = 0)
+     
+
+---- TotalWaterUsed  =E=  The total water used in a year after conservation actions (gallons)
+
+TotalWaterUsed..  TotalWaterYear - 52*WaterEndUse(Shower) - 52*WaterEndUse(Toilet) - 52*WaterEndUse(Faucets) - 52*WaterEndUse(Laundry) - 52*WaterEndUse(Dishwasher) - 52*WaterEndUse(Outdoor) =E= 0 ; (LHS = 0)
+     
+
+---- WaterUsed  =E=  The water used for each end use after actions are taken
+
+WaterUsed(Shower)..  (72)*DoZAction(LowFlowShower) + (8.4)*DoYAction(ShortShowers) + (63)*DoYAction(LessShowers) + WaterEndUse(Shower) =E= 0 ; (LHS = -252, INFES = 252 ****)
+     
+WaterUsed(Toilet)..  (20)*DoZAction(LowFLowToilet) + (2.6)*DoYAction(LessToilet) + WaterEndUse(Toilet) =E= 0 ; (LHS = -52, INFES = 52 ****)
+     
+WaterUsed(Faucets)..  (21)*DoZAction(AeratorFaucet) + (2.2)*DoYAction(LessFaucet) + WaterEndUse(Faucets) =E= 0 ; (LHS = -66, INFES = 66 ****)
+     
+REMAINING 3 ENTRIES SKIPPED
+
+
+---- LimitDuration  =L=  Constraint to make sure the duration doesn't exceed the max reduction
+
+LimitDuration(Shower)..  - DoYAction(ShortShowers) =L= 0 ; (LHS = 0)
+     
+LimitDuration(Outdoor)..  - DoYAction(ShortIrrigation) =L= 0 ; (LHS = 0)
+     
+
+---- LimitFrequency  =L=  Constraint to make sure the frequency doesn't exceed the max reduction
+
+LimitFrequency(Shower)..  - DoYAction(LessShowers) =L= 0 ; (LHS = 0)
+     
+LimitFrequency(Toilet)..  - DoYAction(LessToilet) =L= 0 ; (LHS = 0)
+     
+LimitFrequency(Faucets)..  - DoYAction(LessFaucet) =L= 0 ; (LHS = 0)
+     
+REMAINING 3 ENTRIES SKIPPED
+
+GAMS 51.1.0  2d039df5 Sep 13, 2025          WEX-WEI x86 64bit/MS Windows - 12/09/25 17:04:26 Page 4
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Column Listing      SOLVE WaterConservation Using MINLP From line 138
+
+
+---- TotalCost  Objective function value ($)
+
+TotalCost
+                (.LO, .L, .UP, .M = -INF, 0, +INF, 0)
+        1       TotalBenefit
+
+
+---- DoZAction  Binary variable to represent if a long term action is taken 1:do 0:don't
+
+DoZAction(LowFlowShower)
+                (.LO, .L, .UP, .M = 0, 0, 1, 0)
+      -50       TotalBenefit
+      -10       TotalInvest
+      (72)      WaterUsed(Shower)
+
+DoZAction(LowFLowToilet)
+                (.LO, .L, .UP, .M = 0, 0, 1, 0)
+      -50       TotalBenefit
+      -50       TotalInvest
+      (20)      WaterUsed(Toilet)
+
+DoZAction(AeratorFaucet)
+                (.LO, .L, .UP, .M = 0, 0, 1, 0)
+      -50       TotalBenefit
+      -20       TotalInvest
+      (21)      WaterUsed(Faucets)
+
+REMAINING 3 ENTRIES SKIPPED
+
+---- DoYAction  Variable to represent if a short term action is taken
+
+DoYAction(ShortShowers)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+      -50       TotalBenefit
+       (8.4)    WaterUsed(Shower)
+       -1       LimitDuration(Shower)
+
+DoYAction(LessShowers)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+      -50       TotalBenefit
+      (63)      WaterUsed(Shower)
+       -1       LimitFrequency(Shower)
+
+DoYAction(LessToilet)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+      -50       TotalBenefit
+       (2.6)    WaterUsed(Toilet)
+       -1       LimitFrequency(Toilet)
+
+REMAINING 5 ENTRIES SKIPPED
+
+---- TotalInvestCost  Total cost of implementing long term actions ($)
+
+TotalInvestCost
+                (.LO, .L, .UP, .M = -INF, 0, +INF, 0)
+       -1       TotalBenefit
+        1       TotalInvest
+
+
+---- TotalWaterYear  Total water used per year (gallons)
+
+TotalWaterYear
+                (.LO, .L, .UP, .M = -INF, 0, +INF, 0)
+       -0.0066  TotalBenefit
+        1       TotalWaterUsed
+
+
+---- WaterEndUse  Total water used per end use (gallons)
+
+WaterEndUse(Shower)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+      -52       TotalWaterUsed
+        1       WaterUsed(Shower)
+
+WaterEndUse(Toilet)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+      -52       TotalWaterUsed
+        1       WaterUsed(Toilet)
+
+WaterEndUse(Faucets)
+                (.LO, .L, .UP, .M = 0, 0, +INF, 0)
+      -52       TotalWaterUsed
+        1       WaterUsed(Faucets)
+
+REMAINING 3 ENTRIES SKIPPED
+GAMS 51.1.0  2d039df5 Sep 13, 2025          WEX-WEI x86 64bit/MS Windows - 12/09/25 17:04:26 Page 5
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Range Statistics    SOLVE WaterConservation Using MINLP From line 138
+
+
+RANGE STATISTICS (ABSOLUTE NON-ZERO FINITE VALUES)
+
+RHS       [min, max] : [        NA,        NA] - Zero values observed as well
+Bound     [min, max] : [ 1.000E+00, 1.000E+00] - Zero values observed as well
+Matrix    [min, max] : [ 6.640E-03, 4.000E+02]
+
+GAMS 51.1.0  2d039df5 Sep 13, 2025          WEX-WEI x86 64bit/MS Windows - 12/09/25 17:04:26 Page 6
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Model Statistics    SOLVE WaterConservation Using MINLP From line 138
+
+
+MODEL STATISTICS
+
+BLOCKS OF EQUATIONS           6     SINGLE EQUATIONS           17
+BLOCKS OF VARIABLES           6     SINGLE VARIABLES           23
+NON ZERO ELEMENTS            58     NON LINEAR N-Z             13
+CODE LENGTH                  56     CONSTANT POOL              29     DISCRETE VARIABLES          6
+
+
+GENERATION TIME      =        0.031 SECONDS      4 MB  51.1.0 2d039df5 WEX-WEI
+GAMS 51.1.0  2d039df5 Sep 13, 2025          WEX-WEI x86 64bit/MS Windows - 12/09/25 17:04:26 Page 7
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+Solution Report     SOLVE WaterConservation Using MINLP From line 138
+
+
+               S O L V E      S U M M A R Y
+
+     MODEL   WaterConservation   OBJECTIVE  TotalCost
+     TYPE    MINLP               DIRECTION  MINIMIZE
+     SOLVER  DICOPT              FROM LINE  138
+
+**** SOLVER STATUS     1 Normal Completion
+**** MODEL STATUS      2 Locally Optimal
+**** OBJECTIVE VALUE              269.7673
+
+ RESOURCE USAGE, LIMIT          0.047 10000000000.000
+ ITERATION COUNT, LIMIT         2    2147483647
+ EVALUATION ERRORS              0             0
+-------------------------------------------------------------------------------
+Dicopt 2         51.1.0 2d039df5 Sep 13, 2025          WEI x86 64bit/MS Window
+-------------------------------------------------------------------------------
+*** This solver runs with a community license.
+ 
+ 
+    C O N O P T   version 4.38.1
+    Copyright (C) GAMS Software GmbH
+                  GAMS Development Corporation
+ 
+    Will use up to 4 threads.
+ 
+ 
+    The user model has 17 constraints and 23 variables
+    with 58 Jacobian elements, 13 of which are nonlinear.
+    The Hessian of the Lagrangian has 0 elements on the diagonal,
+    8 elements below the diagonal, and 13 nonlinear variables.
+ 
+    The pre-triangular part of the model has 8 constraints and 1 variables.
+    The post-triangular part of the model has 3 constraints and variables.
+ 
+    Preprocessed model has 6 constraints and 19 variables
+    with 19 Jacobian elements, 13 of which are nonlinear.
+ 
+ ** Optimal solution. There are no superbasic variables.
+ 
+ 
+ CONOPT time Total                            0.005 seconds
+   of which: Function evaluations             0.000 =  0.0%
+             1st Derivative evaluations       0.000 =  0.0%
+             Interval derivative evals        0.000 =  0.0%
+ 
+--- DICOPT: Relaxed NLP gives integer solution
+
+      The Relaxed NLP gave a solution where all the integer
+      variables have integral values. There is no need to
+      to continue the search.
+
+
+                           LOWER          LEVEL          UPPER         MARGINAL
+
+---- EQU TotalBene~          .              .              .             1.0000      
+---- EQU TotalInve~          .              .              .             1.0000      
+---- EQU TotalWate~          .              .              .             0.0066      
+
+  TotalBenefit  Objective function ($)
+  TotalInvest  The total cost of long term actions ($)
+  TotalWaterUsed  The total water used in a year after conservation actions (gallons)
+
+---- EQU WaterUsed  The water used for each end use after actions are taken
+
+                  LOWER          LEVEL          UPPER         MARGINAL
+
+Shower              .              .              .             0.3453      
+Toilet              .              .              .             0.3453      
+Faucets             .              .              .             0.3453      
+Laundry             .              .              .             0.3453      
+Dishwasher          .              .              .             0.3453      
+Outdoor             .              .              .             0.3453      
+
+---- EQU LimitDuration  Constraint to make sure the duration doesn't exceed the max reduction
+
+               LOWER          LEVEL          UPPER         MARGINAL
+
+Shower         -INF             .              .           -47.0996      
+Outdoor        -INF             .              .           -44.8208      
+
+---- EQU LimitFrequency  Constraint to make sure the frequency doesn't exceed the max reduction
+
+                  LOWER          LEVEL          UPPER         MARGINAL
+
+Shower            -INF             .              .           -28.2474      
+Toilet            -INF             .              .           -49.1023      
+Faucets           -INF             .              .           -49.2404      
+Laundry           -INF             .              .           -39.2963      
+Dishwasher        -INF             .              .           -47.8938      
+Outdoor           -INF             .              .           -15.4720      
+
+                           LOWER          LEVEL          UPPER         MARGINAL
+
+---- VAR TotalCost         -INF          269.7673        +INF             .          
+
+  TotalCost  Objective function value ($)
+
+---- VAR DoZAction  Binary variable to represent if a long term action is taken 1:do 0:don't
+
+                     LOWER          LEVEL          UPPER         MARGINAL
+
+LowFlowShower          .              .             1.0000        35.1398      
+LowFLowToilet          .              .             1.0000        93.0944      
+AeratorFaucet          .              .             1.0000        62.7491      
+HELaundry              .              .             1.0000       231.3549      
+HEDishwasher           .              .             1.0000       447.8247      
+ReduceYard             .              .             1.0000       250.0000      
+
+---- VAR DoYAction  Variable to represent if a short term action is taken
+
+                       LOWER          LEVEL          UPPER         MARGINAL
+
+ShortShowers             .              .            +INF             .          
+LessShowers              .              .            +INF             .          
+LessToilet               .              .            +INF             .          
+LessFaucet               .              .            +INF             .          
+LessLaundry              .              .            +INF             .          
+LessDishLoads            .              .            +INF             .          
+ShortIrrigation          .              .            +INF             .          
+LessIrrigation           .              .            +INF             .          
+
+                           LOWER          LEVEL          UPPER         MARGINAL
+
+---- VAR TotalInve~        -INF             .            +INF             .          
+---- VAR TotalWate~        -INF        40627.6000        +INF             .          
+
+  TotalInvestCost  Total cost of implementing long term actions ($)
+  TotalWaterYear  Total water used per year (gallons)
+
+---- VAR WaterEndUse  Total water used per end use (gallons)
+
+                  LOWER          LEVEL          UPPER         MARGINAL
+
+Shower              .           252.0000        +INF             .          
+Toilet              .            52.0000        +INF             .          
+Faucets             .            66.0000        +INF             .          
+Laundry             .            93.0000        +INF             .          
+Dishwasher          .            18.3000        +INF             .          
+Outdoor             .           300.0000        +INF             .          
+
+
+**** REPORT SUMMARY :        0     NONOPT
+                             0 INFEASIBLE
+                             0  UNBOUNDED
+                             0     ERRORS
+GAMS 51.1.0  2d039df5 Sep 13, 2025          WEX-WEI x86 64bit/MS Windows - 12/09/25 17:04:26 Page 8
+G e n e r a l   A l g e b r a i c   M o d e l i n g   S y s t e m
+E x e c u t i o n
+
+
+----    141 VARIABLE TotalCost.L           =      269.767  Objective function value ($)
+
+----    142 PARAMETER RateStd  The standard flow rate (gallons per minute or gallons per load)
+
+Shower      2.100,    Toilet      2.600,    Faucets     2.200,    Laundry    31.000,    Dishwasher  6.100,    Outdoor     5.000
+
+
+----    142 PARAMETER Duration  The duration for each end use X
+
+Shower     30.000,    Toilet      1.000,    Faucets     1.000,    Laundry     1.000,    Dishwasher  1.000,    Outdoor    20.000
+
+
+----    142 PARAMETER Frequency  The frequency of use for each end use X
+
+Shower      4.000,    Toilet     20.000,    Faucets    30.000,    Laundry     3.000,    Dishwasher  3.000,    Outdoor     3.000
+
+
+
+EXECUTION TIME       =        0.344 SECONDS      4 MB  51.1.0 2d039df5 WEX-WEI
+
+
+USER: Course License                                 G250902+0003Ac-GEN
+      Utah State University                                     DCE4709
+      License for teaching and research at degree granting institutions
+
+
+**** FILE SUMMARY
+
+Input      C:\Users\A02312721\Documents\GAMS\Studio\workspace\Household Conservation.gms
+Output     C:\Users\A02312721\Documents\GAMS\Studio\workspace\Household Conservation\Household Conservation.lst

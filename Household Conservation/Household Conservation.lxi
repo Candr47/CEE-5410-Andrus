@@ -1,0 +1,36 @@
+B 3 C o m p i l a t i o n
+B 154 Include File Summary
+B 167 Equation Listing    SOLVE WaterConservation Using MINLP From line 138
+D 170 TotalBenefit
+D 175 TotalInvest
+D 180 TotalWaterUsed
+D 185 WaterUsed
+D 196 LimitDuration
+D 203 LimitFrequency
+B 215 Column Listing      SOLVE WaterConservation Using MINLP From line 138
+E 218 TotalCost
+E 225 DoZAction
+E 247 DoYAction
+E 269 TotalInvestCost
+E 277 TotalWaterYear
+E 285 WaterEndUse
+B 305 Range Statistics    SOLVE WaterConservation Using MINLP From line 138
+B 316 Model Statistics    SOLVE WaterConservation Using MINLP From line 138
+B 330 Solution Report     SOLVE WaterConservation Using MINLP From line 138
+F 387 TotalBenefit
+F 388 TotalInvest
+F 389 TotalWaterUsed
+F 395 WaterUsed
+F 406 LimitDuration
+F 413 LimitFrequency
+G 426 TotalCost
+G 430 DoZAction
+G 441 DoYAction
+G 456 TotalInvestCost
+G 457 TotalWaterYear
+G 462 WaterEndUse
+B 480 E x e c u t i o n
+I 482 TotalCost
+I 483 RateStd
+I 488 Duration
+I 493 Frequency

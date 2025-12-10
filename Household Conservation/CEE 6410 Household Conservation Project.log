@@ -1,0 +1,106 @@
+
+--- Job Household Conservation.gms Start 12/09/25 17:04:26 51.1.0 2d039df5 WEX-WEI x86 64bit/MS Windows
+--- Applying:
+    C:\GAMS\51\gmsprmNT.txt
+    C:\Users\A02312721\Documents\GAMS\gamsconfig.yaml
+--- GAMS Parameters defined
+    Input "C:\Users\A02312721\Documents\GAMS\Studio\workspace\Household Conservation.gms"
+    PageSize 0
+    ScrDir "C:\Users\A02312721\Documents\GAMS\Studio\workspace\Household Conservation\225a\"
+    SysDir C:\GAMS\51\
+    LogOption 3
+    AppendLog 1
+    ErrMsg 1
+    ErrorLog 99
+    IDE 1
+    LstTitleLeftAligned 1
+Licensee: Course License                                 G250902+0003Ac-GEN
+          Utah State University                                     DCE4709
+          225a\gamslice.dat
+          node:21852303 mem:8 cores:4 ipport:62888 uses:0@0 v:2            
+          Course license for use within the course and related course work
+          The expiration date of time-limited license is Dec 31, 2025
+System information: 4 physical cores and 8 Gb physical memory detected
+GAMS 51.1.0   Copyright (C) 1987-2025 GAMS Development. All rights reserved
+--- Starting compilation
+--- Household Conservation.gms(72) 3 Mb
+--- call gdxxrw.exe "Household_Input_Data.xlsx" output="Household_Input_Data.gdx" par=InputData rng=Sheet2!A3:F9 rDim=1 cDim=1 par=MaxReduction rng=Sheet2!I4:J11 rDim=1 cDim=0 par=PrefScoreY rng=Sheet2!L4:M11 rDim=1 cDim=0 par=PrefScoreZ rng=Sheet2!O4:P9 rDim=1 cDim=0
+
+GDXXRW           51.1.0 2d039df5 Sep 13, 2025          WEI x86 64bit/MS Window
+Input file : C:\Users\A02312721\Documents\GAMS\Studio\workspace\Household Conservation\Household_Input_Data.xlsx
+Output file: C:\Users\A02312721\Documents\GAMS\Studio\workspace\Household Conservation\Household_Input_Data.gdx
+Total time = 3015 Ms
+--- Household Conservation.gms(73) 3 Mb
+--- GDXin=C:\Users\A02312721\Documents\GAMS\Studio\workspace\Household Conservation\Household_Input_Data.gdx
+--- GDX File ($gdxIn) C:\Users\A02312721\Documents\GAMS\Studio\workspace\Household Conservation\Household_Input_Data.gdx
+--- Household Conservation.gms(147) 3 Mb
+--- Starting execution: elapsed 0:00:03.345
+--- Household Conservation.gms(101) 4 Mb
+--- Generating MINLP model WaterConservation
+--- Household Conservation.gms(138) 6 Mb
+---   17 rows  23 columns  58 non-zeroes
+---   56 nl-code  13 nl-non-zeroes
+---   6 discrete-columns
+--- Range statistics (absolute non-zero finite values)
+--- RHS       [min, max] : [        NA,        NA] - Zero values observed as well
+--- Bound     [min, max] : [ 1.000E+00, 1.000E+00] - Zero values observed as well
+--- Matrix    [min, max] : [ 6.640E-03, 4.000E+02]
+--- Household Conservation.gms(138) 4 Mb
+--- Executing DICOPT (Solvelink=2): elapsed 0:00:03.384
+-------------------------------------------------------------------------------
+Dicopt 2         51.1.0 2d039df5 Sep 13, 2025          WEI x86 64bit/MS Window
+-------------------------------------------------------------------------------
+*** This solver runs with a community license.
+--- DICOPT: Starting major iteration 1
+--- DICOPT: Setting up first (relaxed) NLP.
+
+CONOPT 4         51.1.0 2d039df5 Sep 13, 2025          WEI x86 64bit/MS Window
+
+ 
+ 
+    C O N O P T   version 4.38.1
+    Copyright (C) GAMS Software GmbH
+                  GAMS Development Corporation
+ 
+    Will use up to 4 threads.
+ 
+ 
+    The user model has 17 constraints and 23 variables
+    with 58 Jacobian elements, 13 of which are nonlinear.
+    The Hessian of the Lagrangian has 0 elements on the diagonal,
+    8 elements below the diagonal, and 13 nonlinear variables.
+ 
+    Iter Phase   Ninf   Infeasibility   RGmax      NSB   Step  InItr MX OK
+       0   0          7.8130000000E+02 (Input point)
+ 
+    The pre-triangular part of the model has 8 constraints and 1 variables.
+    The post-triangular part of the model has 3 constraints and variables.
+ 
+    Preprocessed model has 6 constraints and 19 variables
+    with 19 Jacobian elements, 13 of which are nonlinear.
+ 
+    Iter Phase   Ninf   Infeasibility   RGmax      NSB   Step  InItr MX OK
+                      7.8130000000E+02 (Full preprocessed model)
+                      7.8130000000E+02 (After scaling)
+                      0.0000000000E+00 (After adjusting individual variables)
+ 
+ ** Feasible solution. Value of objective =    1251.81270400
+ 
+    Iter Phase   Ninf     Objective     RGmax      NSB   Step  InItr MX OK
+       1   3          2.6976726400E+02 7.9E+02       1 1.0E+00     1 T  T
+       2   4          2.6976726400E+02 0.0E+00       0
+ 
+ ** Optimal solution. There are no superbasic variables.
+ 
+--- DICOPT: Setting up first MIP
+--- DICOPT: Relaxed NLP gives integer solution
+
+      The Relaxed NLP gave a solution where all the integer
+      variables have integral values. There is no need to
+      to continue the search.
+
+--- Reading solution for model WaterConservation
+--- Executing after solve: elapsed 0:00:03.688
+--- Household Conservation.gms(142) 4 Mb
+*** Status: Normal completion
+--- Job Household Conservation.gms Stop 12/09/25 17:04:30 elapsed 0:00:03.696
