@@ -1,0 +1,95 @@
+=1
+-------------------------------------------------------------------------------
+=CDicopt 2         51.1.0 2d039df5 Sep 13, 2025          WEI x86 64bit/MS Window
+-------------------------------------------------------------------------------
+=C*** This solver runs with a community license.
+=1
+=2
+=0CONOPT 4         51.1.0 2d039df5 Sep 13, 2025          WEI x86 64bit/MS Window
+=1
+ 
+ 
+    C O N O P T   version 4.38.1
+    Copyright (C) GAMS Software GmbH
+                  GAMS Development Corporation
+ 
+=2
+=1
+    Will use up to 4 threads.
+ 
+=2
+ 
+  ***  Line    0  SET       LFEERR =            0
+ 
+  ***  Line    0  SET       LFEERR =            0
+ 
+  ***  Line    0  SET       LFITER =   2147483647
+ 
+  ***  Line    0  SET       RVTIME =     1.0000000000E+10
+=1
+ 
+    The user model has 22 constraints and 27 variables
+    with 52 Jacobian elements, 9 of which are nonlinear.
+    The Hessian of the Lagrangian has 0 elements on the diagonal,
+    6 elements below the diagonal, and 9 nonlinear variables.
+=2
+ 
+    Iter Phase   Ninf   Infeasibility   RGmax      NSB   Step  InItr MX OK
+       0   0          3.4856572253E+06 (Input point)
+=1
+ 
+    The pre-triangular part of the model has 17 constraints and 22 variables.
+=2
+=1
+    The post-triangular part of the model has 5 constraints and variables.
+=2
+=1
+ 
+    Preprocessed model is empty.
+=2
+                      0.0000000000E+00 (Full preprocessed model)
+                      0.0000000000E+00 (After scaling)
+ 
+    Iter Phase   Ninf   Infeasibility   RGmax      NSB   Step  InItr MX OK
+ 
+ ** Feasible solution. Value of objective =    4944.80411886
+ 
+Search for an optimal solution.
+ 
+ 
+    Iter Phase   Ninf     Objective     RGmax      NSB   Step  InItr MX OK
+       1   4          4.9448041189E+03 0.0E+00       0
+=1
+ 
+ ** Optimal solution. There are no superbasic variables.
+ 
+=2
+=1
+ 
+ CONOPT time Total                            0.006 seconds
+   of which: Function evaluations             0.006 =100.0%
+             1st Derivative evaluations       0.000 =  0.0%
+             Interval derivative evals        0.000 =  0.0%
+ 
+=2
+ 
+ Memory: Max used =      0.03 Mbytes
+  Total Allocated =      0.03 Mbytes
+ 
+=1
+=C--- DICOPT: Relaxed NLP gives integer solution
+=C
+=C      The Relaxed NLP gave a solution where all the integer
+=C      variables have integral values. There is no need to
+=C      to continue the search.
+=C
+=2
+ DICOPT Log File
+ ------------------------------------------------------------------
+ Major Major     Objective    CPU time  Itera- Evaluation Solver
+ Step  Iter       Function     (Sec)    tions   Errors
+  NLP    1      4944.80412<     0.05        1      0      conopt
+ ------------------------------------------------------------------
+   Total solver times :  NLP =     0.05   MIP =     0.00
+   Perc. of total     :  NLP =   100.00   MIP =     0.00
+ ------------------------------------------------------------------
